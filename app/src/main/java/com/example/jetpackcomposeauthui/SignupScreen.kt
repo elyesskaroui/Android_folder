@@ -1,5 +1,6 @@
 package com.example.jetpackcomposeauthui.ui
 
+import SignupRequest
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.jetpackcomposeauthui.R
+import com.example.jetpackcomposeauthui.RetrofitClient
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,7 +32,7 @@ import kotlinx.coroutines.launch
 fun SignUpScreen(
     navController: NavHostController
 ) {
-    var userName by remember { mutableStateOf("") } // New state for User Name
+    var name by remember { mutableStateOf("") } // New state for User Name
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -93,8 +95,8 @@ fun SignUpScreen(
 
                 // User Name Field
                 OutlinedTextField(
-                    value = userName,
-                    onValueChange = { userName = it },
+                    value = name,
+                    onValueChange = { name = it },
                     label = { Text(text = "User Name", color = Color.Black) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions.Default.copy(
@@ -153,11 +155,45 @@ fun SignUpScreen(
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            Log.i("credential", "User Name: $userName Email: $email Password: $password Confirm: $confirmPassword")
+                            Log.i("credential", "Name: $name Email: $email Password: $password Confirm: $confirmPassword")
 
-                            if (userName.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword) {
-                                snackbarHostState.showSnackbar("Account created successfully!")
+                            if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password == confirmPassword) {
+                                // Create a SignupRequest object
+                                val signupRequest = SignupRequest(
+                                    email = email,
+                                    password = password,
+                                    name = name
+                                )
+
+                                // Make the API call
+                                val call = RetrofitClient.instance.signUp(signupRequest)
+                                call.enqueue(object : retrofit2.Callback<Void> {
+                                    override fun onResponse(
+                                        call: retrofit2.Call<Void>,
+                                        response: retrofit2.Response<Void>
+                                    ) {
+                                        if (response.isSuccessful) {
+                                            // Handle success (e.g., navigate to another screen or show a message)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Account created successfully!")
+                                            }
+                                        } else {
+                                            // Handle API error (e.g., show an error message)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Signup failed: ${response.message()}")
+                                            }
+                                        }
+                                    }
+
+                                    override fun onFailure(call: retrofit2.Call<Void>, t: Throwable) {
+                                        // Handle network failure
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Network error: ${t.message}")
+                                        }
+                                    }
+                                })
                             } else {
+                                // Show validation error
                                 snackbarHostState.showSnackbar("Please fill in all fields correctly.")
                             }
                         }

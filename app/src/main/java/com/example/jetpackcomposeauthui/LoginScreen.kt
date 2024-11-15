@@ -1,5 +1,7 @@
 package com.example.jetpackcomposeauthui.ui
 
+import AuthResponse
+import LoginRequest
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -24,7 +26,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.jetpackcomposeauthui.R
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,18 +44,24 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    // Create an instance of AuthService
+    val authService = AuthService.create()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.bg2),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                  .graphicsLayer(alpha = 0.5f)
+                    .graphicsLayer(alpha = 0.5f)
             )
 
             Column(
@@ -56,7 +69,6 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp)
-                    .padding(paddingValues)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.logo1),
@@ -79,7 +91,7 @@ fun LoginScreen(
                 )
 
                 Text(
-                    "Please log in to access the details and results  of the security tests.",
+                    "Please log in to access the details and results of the security tests.",
                     style = TextStyle(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
@@ -122,9 +134,34 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            Log.i("credential", "Email: $email Password: $password")
                             if (email.isNotEmpty() && password.isNotEmpty()) {
-                                snackbarHostState.showSnackbar("Logged in successfully!")
+                                val loginRequest = LoginRequest(email, password)
+
+                                authService.login(loginRequest).enqueue(object : Callback<AuthResponse> {
+                                    override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
+                                        coroutineScope.launch {
+                                            if (response.isSuccessful) {
+                                                val authResponse = response.body()
+                                                if (authResponse != null) {
+                                                    Log.d("LoginScreen", "Access Token: ${authResponse.accessToken}")
+                                                    snackbarHostState.showSnackbar("Logged in successfully!")
+                                                    navController.navigate("home")
+                                                } else {
+                                                    snackbarHostState.showSnackbar("Unexpected error, please try again.")
+                                                }
+                                            } else {
+                                                snackbarHostState.showSnackbar("Invalid credentials, please try again.")
+                                            }
+                                        }
+                                    }
+
+                                    override fun onFailure(call: Call<AuthResponse>, t: Throwable) {
+                                        coroutineScope.launch {
+                                            Log.e("LoginScreen", "Login failed: ${t.message}")
+                                            snackbarHostState.showSnackbar("Login failed: ${t.message}")
+                                        }
+                                    }
+                                })
                             } else {
                                 snackbarHostState.showSnackbar("Please enter your credentials")
                             }
