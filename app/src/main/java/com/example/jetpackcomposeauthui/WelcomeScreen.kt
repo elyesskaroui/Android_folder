@@ -64,7 +64,7 @@ fun WelcomeScreen(
     ) {
         // Image de fond
         Image(
-            painter = painterResource(id = R.drawable.bg2),
+            painter = painterResource(id = R.drawable.welcome1),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -74,7 +74,8 @@ fun WelcomeScreen(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.Top, // Modifier pour placer les éléments en haut
+
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
@@ -82,13 +83,11 @@ fun WelcomeScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Logo
             Image(
                 painter = painterResource(id = R.drawable.logo1),
                 contentDescription = null,
                 modifier = Modifier
-                    .width(280.dp)
-                    .height(200.dp),
+                    .padding(bottom = 300.dp),  // Ajout d'un padding en haut de 200dp
                 contentScale = ContentScale.Fit
             )
 
@@ -114,7 +113,7 @@ fun WelcomeScreen(
                 fontSize = 22.sp,
                 fontFamily = AlegreyaSansFontFamily,
                 fontWeight = FontWeight.Black,
-                color = Color(0xFF225896) // Gris foncé pour un contraste doux
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.weight(1f))

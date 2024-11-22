@@ -1,25 +1,18 @@
 package com.example.jetpackcomposeauthui
 
-
-
-
+import VerifyOtpScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.jetpackcomposeauthui.ui.ForgotPasswordScreen
 import com.example.jetpackcomposeauthui.ui.LoginScreen
+import com.example.jetpackcomposeauthui.ui.ProfileScreen
 import com.example.jetpackcomposeauthui.ui.SignUpScreen
-
+//import com.example.jetpackcomposeauthui.ui.VerifyOtpScreen
 import com.example.jetpackcomposeauthui.ui.theme.JetpackComposeAuthUITheme
 
 class MainActivity : ComponentActivity() {
@@ -27,7 +20,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             JetpackComposeAuthUITheme {
-                /// Let just add navigation so users can go from one screen to another
+                // Add navigation so users can go from one screen to another
                 NavigationView()
             }
         }
@@ -36,15 +29,20 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NavigationView() {
-
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "welcome" ){
-        // also pass navController to each screen so we can use navController in there
-        composable("welcome"){ WelcomeScreen(navController)}
-        composable("login"){ LoginScreen(navController)}
-        composable("signup"){ SignUpScreen(navController) }
-        composable("forgot_password"){ ForgotPasswordScreen(navController) }
+    NavHost(navController = navController, startDestination = "welcome") {
+        composable("welcome") { WelcomeScreen(navController) }
+        composable("login") { LoginScreen(navController) }
+        composable("signup") { SignUpScreen(navController) }
+        composable("forgot_password") { ForgotPasswordScreen(navController) }
+        composable("verify_otp") { VerifyOtpScreen(navController) }
+        composable("home") { HomeScreen(navController) }
+        composable("profile_screen") { Profilecars(navController) }
+        composable("edit_profile") {
+            EditProfileScreen(
+                onBackPressed = { navController.popBackStack() }
+            )
     }
+}}
 
-}

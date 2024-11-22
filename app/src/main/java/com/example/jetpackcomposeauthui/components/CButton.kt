@@ -17,12 +17,12 @@ import com.example.jetpackcomposeauthui.ui.theme.AlegreyaSansFontFamily
 
 @Composable
 fun CButton(
-    onClick: () -> Unit = {},
-    text: String,
+    onClick: () -> Unit = {},// Action déclenchée lors d'un clic
+    text: String,// Texte affiché sur le bouton
 ) {
     // make this button also resuable
     Button(
-        onClick = onClick,
+        onClick = onClick,// L'action à exécuter lorsqu'on clique
         shape = MaterialTheme.shapes.large,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFF7C9A92)

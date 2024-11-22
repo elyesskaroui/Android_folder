@@ -61,7 +61,7 @@ fun LoginScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer(alpha = 0.5f)
+                    .graphicsLayer(alpha = 0.3f)
             )
 
             Column(
@@ -133,11 +133,14 @@ fun LoginScreen(
 
                 Button(
                     onClick = {
+                        navController.navigate("home")
+
                         coroutineScope.launch {
                             if (email.isNotEmpty() && password.isNotEmpty()) {
                                 val loginRequest = LoginRequest(email, password)
 
                                 authService.login(loginRequest).enqueue(object : Callback<AuthResponse> {
+
                                     override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
                                         coroutineScope.launch {
                                             if (response.isSuccessful) {
@@ -147,9 +150,12 @@ fun LoginScreen(
                                                     snackbarHostState.showSnackbar("Logged in successfully!")
                                                     navController.navigate("home")
                                                 } else {
+
                                                     snackbarHostState.showSnackbar("Unexpected error, please try again.")
+
                                                 }
                                             } else {
+
                                                 snackbarHostState.showSnackbar("Invalid credentials, please try again.")
                                             }
                                         }
@@ -174,6 +180,7 @@ fun LoginScreen(
                 ) {
                     Text(text = "Login", color = Color.White)
                 }
+
 
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -253,6 +260,7 @@ fun DontHaveAccountRow(onSignupTap: () -> Unit) {
                 )
             )
         }
+
     }
 }
 

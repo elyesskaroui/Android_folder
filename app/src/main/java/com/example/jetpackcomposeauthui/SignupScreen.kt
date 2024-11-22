@@ -51,7 +51,7 @@ fun SignUpScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer(alpha = 0.5f)
+                    .graphicsLayer(alpha = 0.3f)
             )
 
             Column(

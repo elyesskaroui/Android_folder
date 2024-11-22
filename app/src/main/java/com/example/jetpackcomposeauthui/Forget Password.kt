@@ -87,11 +87,10 @@ fun ForgotPasswordScreen(
                         .padding(bottom = 24.dp)
                 )
 
-                // Email Field with black text color
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text(text = "Email Address", color = Color.Black) }, // Label color set to black
+                    label = { Text(text = "Email Address", color = Color.Black) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done,
@@ -99,9 +98,10 @@ fun ForgotPasswordScreen(
                     ),
                     singleLine = true,
                     colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = Color.Black, // Text color set to black
-                        focusedLabelColor = Color.Black, // Focused label color set to black
-                        unfocusedLabelColor = Color.Black // Unfocused label color set to black
+                        focusedTextColor = Color.Black, // La couleur du texte lorsque le champ est focusé
+                        unfocusedTextColor = Color.Black, // La couleur du texte lorsque le champ n'est pas focusé
+                        focusedLabelColor = Color.Black,
+                        unfocusedLabelColor = Color.Black
                     )
                 )
 
@@ -110,10 +110,9 @@ fun ForgotPasswordScreen(
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            Log.i("ForgotPassword", "Email: $email")
-
                             if (email.isNotEmpty()) {
                                 snackbarHostState.showSnackbar("Reset link sent to your email.")
+                                navController.navigate("verify_otp") // Navigation vers VerifyOtpScreen
                             } else {
                                 snackbarHostState.showSnackbar("Please enter your email address.")
                             }
