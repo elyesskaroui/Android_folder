@@ -30,20 +30,39 @@ export class ScraperController {
     if (!imageUrl) {
       return {
         success: false,
-        message: "No image URL provided",
+        message: 'Aucune URL d\'image fournie',
       };
     }
-
-    const result = await this.scraperService.analyzeImage(imageUrl);
-
-    return {
-      success: true,
-      analysis: result,
-      message: result.related
-        ? "The image is related to health."
-        : "The image is NOT related to health.",
-    };
+    
+    try {
+      const result = await this.scraperService.analyzeImage(imageUrl);
+      
+      // Enrichissement de la réponse
+      return {
+        success: true,
+        analysis: {
+          related: result.related,
+          details: result.details,
+          found: result.found,
+        },
+        message: result.related
+          ? 'Cette image est liée au domaine médical ou de la santé.'
+          : 'Cette image n\'est PAS liée au domaine médical ou de la santé.',
+        error: null,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Erreur lors de l'analyse de l'image`,
+        error: error.message,
+        analysis: {
+          related: false,
+          details: "Impossible d'analyser cette image. Veuillez réessayer avec une autre URL.",
+        }
+      };
+    }
   }
+
 
   // // POST method to upload video file
   // @Post('upload')

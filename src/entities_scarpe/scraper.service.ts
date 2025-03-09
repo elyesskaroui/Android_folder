@@ -5,6 +5,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 @Injectable()
 export class ScraperService {
+  analyzeImageFromBase64(imageData: string, mimeType: string) {
+    throw new Error('Method not implemented.');
+  }
   private readonly logger = new Logger(ScraperService.name);
 
   private browserConfig = {
@@ -121,6 +124,8 @@ export class ScraperService {
           "match": true/false, 
           "data": "extracted data if found", 
           "source": "website URL containing the information"
+           "accuracy": "percentage of accuracy between the provided statement and the extracted data"
+          
           
         }
 
@@ -128,6 +133,12 @@ export class ScraperService {
         - "match": true if the extracted data confirms that "${info}" is correct, false if it contradicts it.
         - "data": The extracted relevant information.
         - "source": The URL containing the extracted information.
+         - "accuracy": A percentage (0% to 100%) indicating how closely the extracted data matches the given statement.
+
+        The accuracy percentage should reflect how well the extracted data supports the given statement. 
+        - 100% means the extracted data fully confirms the statement.
+        - 0% means the extracted data contradicts the statement.
+        - Intermediate values should reflect partial confirmation based on the degree of similarity.
 
         Ensure the response explicitly states whether the extracted data supports or contradicts the provided information.`;
 
@@ -169,57 +180,112 @@ export class ScraperService {
   /* URL VERIFY API */
   async analyzeImage(imageUrl: string): Promise<{ found: boolean; related: boolean; details: string }> {
     try {
-        this.logger.log(`🔍 Analyzing image: ${imageUrl}`);
-
-        // 1. Fetch the image as binary data
-        const imageResp = await fetch(imageUrl);
-        const imageBuffer = await imageResp.arrayBuffer();
-
-        // 2. Prepare the prompt with image and instructions
-        const instruction = `first describe the image 
-            Analyze this image and determine if it relates to health or medicine.
-            Focus on elements like medical instruments, hospitals, medicines, healthcare workers, biological diagrams, etc.
-            Your response must be JSON in this exact format:
-            {     "description": you must describe the provided image give it description ,
-                "found": true/false,
-                "related": true/false,
-                "details": "Explanation of why it is or isn't health-related"
-            }
-        `;
-
-        // 3. Send image + prompt to Gemini
-        const result = await this.model.generateContent([
+      this.logger.log(`🔍 Analyzing image from URL: ${imageUrl}`);
+      
+      // Vérifier si l'URL est valide
+      if (!imageUrl || !imageUrl.match(/^(http|https):\/\/[^ "]+$/)) {
+        return {
+          found: false,
+          related: false,
+          details: "URL d'image invalide. Assurez-vous qu'elle commence par http:// ou https://",
+        };
+      }
+      
+      // Ajouter un mécanisme de retry
+      let attempt = 0;
+      const maxAttempts = 3;
+      
+      while (attempt < maxAttempts) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // Augmenté à 15 secondes
+          
+          const imageResp = await fetch(imageUrl, {
+            signal: controller.signal,
+            headers: { 
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+              'Accept': 'image/*'
+            },
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!imageResp.ok) {
+            throw new Error(`Impossible de récupérer l'image: ${imageResp.status} - ${imageResp.statusText}`);
+          }
+          
+          const contentType = imageResp.headers.get('content-type');
+          if (!contentType || !contentType.startsWith('image/')) {
+            throw new Error("L'URL ne pointe pas vers une image valide");
+          }
+          
+          const imageBuffer = await imageResp.arrayBuffer();
+          const imageData = Buffer.from(imageBuffer).toString('base64');
+          
+          // Amélioration du prompt pour Gemini
+          const instruction = `
+            Analysez attentivement cette image et déterminez si elle est liée au domaine médical ou de la santé.
+            Recherchez spécifiquement:
+            1. Instruments médicaux, équipements hospitaliers ou médicaments
+            2. Personnel médical (médecins, infirmières, etc.)
+            3. Organes, cellules, structures biologiques
+            4. Graphiques ou diagrammes médicaux
+            5. Logos d'institutions médicales
+            6. Texte ou symboles liés à la médecine
+  
+            Votre réponse doit être au format JSON exact suivant:
             {
-                inlineData: {
-                    data: Buffer.from(imageBuffer).toString('base64'),
-                    mimeType: 'image/jpeg', // adapt if needed
-                },
+              "description": "description détaillée de l'image",
+              "found": true/false,
+              "related": true/false,
+              "details": "Explication précise des éléments médicaux identifiés ou pourquoi l'image n'est pas médicale",
+              "confidence": 0-100
+            }`;
+          
+          // Envoi à Gemini comme dans votre code existant
+          const result = await this.model.generateContent([
+            {
+              inlineData: { data: imageData, mimeType: contentType },
             },
             instruction,
-        ]);
-
-        const responseText = result.response.text();
-        this.logger.log(`✅ Gemini response: ${responseText}`);
-
-        // 4. Parse Gemini's response into expected format
-        const analysis = JSON.parse(responseText);
-
-        // 5. Return structured result
-        return {
-            found: analysis.found ?? false,
-            related: analysis.related ?? false,
-            details: analysis.details ?? 'No details provided',
-        };
-
+          ]);
+          
+          let responseText = result.response.text().trim();
+          this.logger.log(`✅ Raw Gemini response: ${responseText}`);
+          
+          responseText = responseText.replace(/^```json\s*/, '').replace(/```$/, '').trim();
+          
+          let analysis;
+          try {
+            analysis = JSON.parse(responseText);
+          } catch (parseError) {
+            this.logger.error(`Failed to parse Gemini response: ${responseText}`);
+            throw new Error(`Invalid JSON response: ${parseError.message}`);
+          }
+          
+          return {
+            found: analysis.found || false,
+            related: analysis.related || false,
+            details: analysis.details || '',
+            // Vous pouvez aussi ajouter le champ confidence si souhaité
+          };
+        } catch (error) {
+          attempt++;
+          if (attempt >= maxAttempts) throw error;
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Attente exponentielle
+        }
+      }
+      
+      throw new Error("Échec après plusieurs tentatives");
     } catch (error) {
-        this.logger.error(`❌ Error analyzing image: ${error.message}`);
-        return {
-            found: false,
-            related: false,
-            details: 'Failed to analyze image',
-        };
+      this.logger.error(`❌ Error analyzing image: ${error.message}`);
+      return {
+        found: false,
+        related: false,
+        details: `Failed to analyze image: ${error.message}`,
+      };
     }
-}
+  }
 /******************************* */
 
 
