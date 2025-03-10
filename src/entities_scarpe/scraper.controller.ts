@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Query } from '@nestjs/common';
 
 import { ScraperService } from './scraper.service';
 
@@ -64,6 +64,20 @@ export class ScraperController {
   }
 
 
+
+
+
+  @Get('/get-analysis-result')
+  async getAnalysisResult() {
+    return await this.scraperService.getAnalysisResulttext();
+  }
+
+
+
+
+
+
+
   // // POST method to upload video file
   // @Post('upload')
   // @UseInterceptors(FileInterceptor('file'))
@@ -112,7 +126,38 @@ export class ScraperController {
 
 
 
-}
+
+
+
+
+  @Get('analysellll')
+  async analyzevideo(@Body('videoUrl') videoUrl: string) {
+    try {
+      //const videoPath = await this.scraperService.donwloadvideo(videoUrl);
+     // console.log("Path of the video is: " + videoPath); // Now you should see the correct path here
+      // Pass the videoPath to your analysis method
+      // this.scraperService.analyseVideoWithIA(videoPath);
+    } catch (error) {
+      console.error('Error during video download:', error); // Log any errors
+    }
+  }
+  
+  
+
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
 //function Post(arg0: string): (target: ScraperController, propertyKey: "uploadVideo", descriptor: TypedPropertyDescriptor<(file: Express.Multer.File) => Promise<{ success: boolean; message: string; analysis: { success: boolean; message: string; analysis?: undefined; } | { ...; }; error?: undefined; } | { ...; }>>) => void | TypedPropertyDescriptor<...> {
  // throw new Error('Function not implemented.');
 //}

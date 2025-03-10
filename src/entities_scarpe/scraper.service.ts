@@ -2,9 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as puppeteer from 'puppeteer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
+import { GoogleAIFileManager, FileState } from "@google/generative-ai/server";
+import serveStatic from 'serve-static';
+import { VideoDownloaderService } from 'src/video-downloader/video-downloader.service';
+import * as fs from 'fs';  // Import fs to write to the file
+import * as path from 'path';  // To resolve the f
 @Injectable()
 export class ScraperService {
+  private analysisResults: Record<string, string> = {}; // Store results by video URL
+
+  constructor() {}
+
+
+
+
+
   analyzeImageFromBase64(imageData: string, mimeType: string) {
     throw new Error('Method not implemented.');
   }
@@ -333,5 +345,145 @@ export class ScraperService {
       throw new Error(`Video analysis failed: ${error.message}`);
     }
   }
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  async analysevideowithia(videoUrl: string) {
+    try {
+      var ok = true;
+      // Initialize GoogleAIFileManager with your GEMINI_API_KEY.
+      const fileManager = new GoogleAIFileManager(this.apiKey);
+      const model = this.genAI.getGenerativeModel({
+        model: "gemini-1.5-pro",
+      });
+  
+      // Upload the file and specify a display name.
+      const uploadResponse = await fileManager.uploadFile(videoUrl, {
+        mimeType: "video/mp4",
+        displayName: "Jupiter's Great Red Spot",
+      });
+  
+      console.log(`Uploaded file ${uploadResponse.file.displayName} as: ${uploadResponse.file.uri}`);
+  
+      const name = uploadResponse.file.name;
+  
+      // Poll getFile() on a set interval (10 seconds) to check file state.
+      let file = await fileManager.getFile(name);
+      while (file.state === FileState.PROCESSING && ok) {
+        process.stdout.write(".");
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        file = await fileManager.getFile(name);
+      }
+  
+      if (file.state === FileState.FAILED) {
+        throw new Error("Video processing failed.");
+      }
+  
+      // When file.state is ACTIVE, the file is ready to be used for inference.
+      const result = await model.generateContent([
+        {
+          fileData: {
+            mimeType: uploadResponse.file.mimeType,
+            fileUri: uploadResponse.file.uri,
+          },
+        },
+        { text: "Summarize this video. Then create a quiz with answer key based on the information in the video." },
+      ]);
+  
+      const analysisText = result.response.text();
+      console.log("Analysis Result: ", analysisText);
+      ok = false;
+      // Define the path to save the output file
+      const outputPath = path.resolve(__dirname, 'analysisResult.txt');
+      
+      // Write the result to a .txt file
+      fs.writeFileSync(outputPath, analysisText, 'utf8');
+  
+      console.log("File successfully created at: ", outputPath);
+  
+      // Wait a moment before reading (optional)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+  
+      // Read the content of the file
+      const fileContent = fs.readFileSync(outputPath, 'utf8');
+  
+      console.log("Extracted Content from File: ", fileContent);
+  
+      // Return the content of the file
+      return { success: true, content: fileContent };
+  
+    } catch (error) {
+      console.error("Error during video analysis:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+async getAnalysisResult(videoUrl: string) {
+  console.log("000000000000000000000000000000000000000000000000000");
+  return this.analysisResults[videoUrl] || "Processing or no result available.";
+}
+
+
+
+
+
+
+
+
+
+
+async getAnalysisResulttext(): Promise<{ success: boolean; content?: string; error?: string }> {
+  try {
+    // Define the file path
+    const outputPath = path.resolve(__dirname, 'analysisResult.txt');
+
+    // Check if the file exists
+    if (!fs.existsSync(outputPath)) {
+      throw new Error("Analysis result file not found.");
+    }
+
+    // Read the file content
+    const fileContent = fs.readFileSync(outputPath, 'utf8');
+
+    return { success: true, content: fileContent };
+  } catch (error) {
+    console.error("Error reading analysis result:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

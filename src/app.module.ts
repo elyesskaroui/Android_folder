@@ -12,6 +12,7 @@ import { OrderModule } from './order/order.module';
 import { ScraperModule } from './entities_scarpe/scraper.module';
 import config from './config/config';
 import { GemModule } from './gem/gem.module';
+import { VideoDownloaderModule } from './video-downloader/video-downloader.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { GemModule } from './gem/gem.module';
     ProduitModule,
     OrderModule,
     GemModule,
+    VideoDownloaderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
